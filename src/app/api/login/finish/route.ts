@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
 
   console.log("finishLoginRequest", finishLoginRequest);
   const { sessionKey } = opaque.server.finishLogin({
-    finishLoginRequest:
-      "6s9b74_n8K1ARHYl8ehvA7e6CTr3gbelPTj_7mYbtRJDFu10kgYW0q5h4dB3s3eyIxTzad9q5f3Duibo9BNeAg",
+    finishLoginRequest,
     serverLoginState,
   });
 
