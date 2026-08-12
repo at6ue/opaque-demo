@@ -17,5 +17,3 @@ export function getEnv(key: string, defaultValue: string) {
 }
 
 export const SERVER_SETUP = requireEnv("OPAQUE_SERVER_SETUP");
-export const ENABLE_REDIS = hasEnv("ENABLE_REDIS");
-export const REDIS_URL = getEnv("REDIS_URL", "redis://127.0.0.1:6379");
