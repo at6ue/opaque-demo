@@ -20,6 +20,7 @@ export const LoginStartParams = z.object({
 export const LoginFinishParams = z.object({
   userIdentifier: noProtoString,
   finishLoginRequest: noProtoString,
+  useCookie: z.boolean().optional(),
 });
 
 export const RegisterStartParams = z.object({

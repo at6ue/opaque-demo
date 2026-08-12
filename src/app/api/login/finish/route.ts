@@ -1,6 +1,8 @@
 import * as opaque from "@serenity-kit/opaque";
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import database from "../../db";
+import { SESSION_TTL_SECONDS } from "../../sessionConfig";
 import { checkRateLimit } from "../../rateLimiter";
 import { LoginFinishParams } from "../../schema";
 
@@ -12,12 +14,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let userIdentifier, finishLoginRequest;
+  let userIdentifier,
+    finishLoginRequest,
+    useCookie = false;
   try {
     const rawValues = await request.json();
     const values = LoginFinishParams.parse(rawValues);
     userIdentifier = values.userIdentifier;
     finishLoginRequest = values.finishLoginRequest;
+    useCookie = values.useCookie ?? false;
   } catch (err) {
     return NextResponse.json(
       { error: "Invalid input values" },
@@ -37,6 +42,26 @@ export async function POST(request: NextRequest) {
     serverLoginState,
   });
 
+  // create a single auth session id and store only the sessionKey
+  const sessionId = randomUUID();
+  await db.setLogin(sessionId, sessionKey);
   await db.removeLogin(userIdentifier);
-  return NextResponse.json({ success: true });
+
+  const responseBody: { success: true; sessionId?: string } = useCookie
+    ? { success: true }
+    : { success: true, sessionId };
+
+  const res = NextResponse.json(responseBody);
+
+  if (useCookie) {
+    res.cookies.set("sid", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_SECONDS,
+    });
+  }
+
+  return res;
 }

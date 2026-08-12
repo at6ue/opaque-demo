@@ -2,6 +2,7 @@
 
 import * as opaque from "@serenity-kit/opaque";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 async function request(method: string, path: string, body: any = undefined) {
   console.log(`${method} ${path}`, body);
@@ -45,7 +46,11 @@ async function register(userIdentifier: string, password: string) {
   return res.ok;
 }
 
-async function login(userIdentifier: string, password: string) {
+async function login(
+  userIdentifier: string,
+  password: string,
+  useCookie: boolean,
+) {
   const { clientLoginState, startLoginRequest } = opaque.client.startLogin({
     password,
   });
@@ -70,42 +75,58 @@ async function login(userIdentifier: string, password: string) {
   const res = await request("POST", "/api/login/finish", {
     userIdentifier,
     finishLoginRequest,
+    useCookie,
   });
-  return res.ok ? sessionKey : null;
+  const data = await res.json();
+  if (res.ok) {
+    try {
+      if (!useCookie && data.sessionId) {
+        localStorage.setItem("sessionId", data.sessionId);
+      } else {
+        localStorage.removeItem("sessionId");
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return sessionKey;
+  }
+  return null;
 }
 
-async function handleSubmit(
-  action: string,
-  username: string,
-  password: string,
-) {
-  try {
-    if (action === "login") {
-      const sessionKey = await login(username, password);
-      if (sessionKey) {
-        alert(
-          `User "${username}" logged in successfully; sessionKey = ${sessionKey}`,
-        );
-      } else {
-        alert(`User "${username}" login failed`);
-      }
-    } else if (action === "register") {
-      const ok = await register(username, password);
-      if (ok) {
-        alert(`User "${username}" registered successfully`);
-      } else {
-        alert(`Failed to register user "${username}"`);
-      }
-    }
-  } catch (err) {
-    console.error(err);
-    alert(err);
-  }
-}
+// handleSubmit is implemented inside the component so it can use hooks (router)
 
 export default function Home() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [useCookie, setUseCookie] = useState(true);
+  const router = useRouter();
+
+  async function handleSubmit(
+    action: string,
+    username: string,
+    password: string,
+  ) {
+    try {
+      if (action === "login") {
+        const sessionKey = await login(username, password, useCookie);
+        if (sessionKey) {
+          router.push("/dashboard");
+        } else {
+          alert(`User "${username}" login failed`);
+        }
+      } else if (action === "register") {
+        const ok = await register(username, password);
+        if (ok) {
+          alert(`User "${username}" registered successfully`);
+        } else {
+          alert(`Failed to register user "${username}"`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err);
+    }
+  }
 
   return (
     <>
@@ -149,6 +170,16 @@ export default function Home() {
             }}
           />
 
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={useCookie}
+                onChange={(e) => setUseCookie(e.target.checked)}
+              />
+              Use Cookie
+            </label>
+          </div>
           <div className="space-x-2">
             <Button name="action" value="login">
               Login

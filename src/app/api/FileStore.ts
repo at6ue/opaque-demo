@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { Datastore } from "./Datastore";
+import { SESSION_TTL_SECONDS } from "./sessionConfig";
 
 const LOGIN_CONTEXT_SESSION = "session";
 
@@ -91,7 +92,7 @@ export default class FileStore implements Datastore {
     if (login == null) return false;
     const now = new Date().getTime();
     const elapsed = now - login.timestamp;
-    return elapsed < 2000;
+    return elapsed < SESSION_TTL_SECONDS * 1000;
   }
 
   async setUser(name: string, value: string) {
