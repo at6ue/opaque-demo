@@ -1,15 +1,14 @@
 import fs from "fs/promises";
 import path from "path";
 import { Datastore } from "./Datastore";
-import { SESSION_TTL_SECONDS } from "./sessionConfig";
-
-const LOGIN_CONTEXT_SESSION = "session";
+import { SESSION_TTL_SECONDS, START_LOGIN_TTL_SECONDS } from "./sessionConfig";
 
 type LoginState = { value: string; timestamp: number };
 
 type Schema = {
   users: Record<string, string>;
   logins: Record<string, LoginState>;
+  sessions: Record<string, LoginState>;
 };
 
 export default class FileStore implements Datastore {
@@ -34,6 +33,7 @@ export default class FileStore implements Datastore {
       const initialData: Schema = {
         users: {},
         logins: {},
+        sessions: {},
       };
       await fs.writeFile(
         this.filePath,
@@ -54,6 +54,7 @@ export default class FileStore implements Datastore {
       return {
         users: {},
         logins: {},
+        sessions: {},
       };
     }
   }
@@ -78,21 +79,21 @@ export default class FileStore implements Datastore {
     return data.users[name] != null;
   }
 
-  async getLogin(name: string, context: string = LOGIN_CONTEXT_SESSION) {
-    const hasLogin = await this.hasLogin(name, context);
+  async getLogin(name: string) {
+    const hasLogin = await this.hasLogin(name);
     if (!hasLogin) return null;
 
     const data = await this._readFile();
-    return data.logins[`${context}:${name}`].value;
+    return data.logins[name].value;
   }
 
-  async hasLogin(name: string, context: string = LOGIN_CONTEXT_SESSION) {
+  async hasLogin(name: string) {
     const data = await this._readFile();
-    const login = data.logins[`${context}:${name}`];
+    const login = data.logins[name];
     if (login == null) return false;
     const now = new Date().getTime();
     const elapsed = now - login.timestamp;
-    return elapsed < SESSION_TTL_SECONDS * 1000;
+    return elapsed < START_LOGIN_TTL_SECONDS * 1000;
   }
 
   async setUser(name: string, value: string) {
@@ -101,22 +102,50 @@ export default class FileStore implements Datastore {
     await this._writeFile(data);
   }
 
-  async setLogin(
-    name: string,
-    value: string,
-    context: string = LOGIN_CONTEXT_SESSION,
-  ) {
+  async setLogin(name: string, value: string) {
     const data = await this._readFile();
-    data.logins[`${context}:${name}`] = {
+    data.logins[name] = {
       value,
       timestamp: new Date().getTime(),
     };
     await this._writeFile(data);
   }
 
-  async removeLogin(name: string, context: string = LOGIN_CONTEXT_SESSION) {
+  async removeLogin(name: string) {
     const data = await this._readFile();
-    delete data.logins[`${context}:${name}`];
+    delete data.logins[name];
+    await this._writeFile(data);
+  }
+
+  async getSession(name: string) {
+    const hasSession = await this.hasSession(name);
+    if (!hasSession) return null;
+
+    const data = await this._readFile();
+    return data.sessions[name].value;
+  }
+
+  async hasSession(name: string) {
+    const data = await this._readFile();
+    const session = data.sessions[name];
+    if (session == null) return false;
+    const now = new Date().getTime();
+    const elapsed = now - session.timestamp;
+    return elapsed < SESSION_TTL_SECONDS * 1000;
+  }
+
+  async setSession(name: string, value: string) {
+    const data = await this._readFile();
+    data.sessions[name] = {
+      value,
+      timestamp: new Date().getTime(),
+    };
+    await this._writeFile(data);
+  }
+
+  async removeSession(name: string) {
+    const data = await this._readFile();
+    delete data.sessions[name];
     await this._writeFile(data);
   }
 }

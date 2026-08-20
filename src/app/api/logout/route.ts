@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const sid = sidCookie?.value ?? null;
   if (sid) {
     try {
-      await db.removeLogin(sid);
+      await db.removeSession(sid);
     } catch (e) {
       // ignore
     }
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   const headerKey = request.headers.get("x-api-key");
   if (headerKey) {
     try {
-      await db.removeLogin(headerKey);
+      await db.removeSession(headerKey);
     } catch (e) {
       // ignore
     }

@@ -23,7 +23,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/next.config.mjs ./
 
 # Ensure data file exists for runtime persistence
-RUN printf '{"users":{},"logins":{}}' > data.json
+RUN printf '{"users":{},"logins":{},"sessions":{}}' > data.json
 
 ENV NODE_ENV=production
 EXPOSE 3000

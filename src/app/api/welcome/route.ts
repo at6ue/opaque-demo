@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const has = await db.hasLogin(authKey);
+  const has = await db.hasSession(authKey);
   if (!has) return new Response("Forbidden", { status: 403 });
 
   return NextResponse.json({

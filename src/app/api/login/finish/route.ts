@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
     serverLoginState,
   });
 
-  // create a single auth session id and store only the sessionKey
+  // create a single auth session id and store only the sessionKey in sessions
   const sessionId = randomUUID();
-  await db.setLogin(sessionId, sessionKey);
+  await db.setSession(sessionId, sessionKey);
   await db.removeLogin(userIdentifier);
 
   const responseBody: { success: true; sessionId?: string } = useCookie
